@@ -349,6 +349,7 @@ void setup(void)
   // Request configuration from parent
   //
 
+	Serial.println("Sending packet to parent: " + String(network.parent()));
   RF24NetworkHeader header(network.parent(), 'k');
   printf_P(PSTR("%lu: APP Sending type-%c to 0%o...\n\r"), millis(), header.type, header.to_node);
   if ( ! network.write(header, NULL, 0) )
@@ -376,10 +377,12 @@ void loop(void)
     {
       // clear message from queue
       network.read(header, NULL, 0);
+      Serial.println("Test message received from child");
     }
     // Handle config messages
     else if ( header.type == 'k' )
     {
+    	Serial.println("Child requesting configuration");
       // child is requesting a configuration from us
       network.read(header, NULL, 0);
       RF24NetworkHeader response_header(/*to node*/ header.from_node, /*type*/ 'K');
@@ -402,6 +405,9 @@ void loop(void)
         send_timer.setInterval(8000UL * (uint32_t)sleep_cycles_per_transmission);
         Sleep.setSleepCycles(sleep_cycles_per_transmission);
       }
+    }else{
+    	//other message
+    	Serial.println("Unknown message received from node: " + String(header.from_node));
     }
 
     // If we have a temp sensor AND we are not sleeping
