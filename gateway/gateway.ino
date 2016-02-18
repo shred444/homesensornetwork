@@ -6,6 +6,7 @@
 
 #include <SimpleTimer.h>
 #include "S_message.h"
+#include "printf.h"
 
 //LED Config
 const int ledArduino = 13;
@@ -103,20 +104,20 @@ void loop(void)
 		digitalWrite(color, ledState);
 		
 		//printf_P(PSTR("%lu: APP Received #%u type %c from 0%o\n\r"), millis(), header.id, header.type, header.from_node);
-		Serial.println("Message Type: " + String(header.type));
+		//Serial.println("Message Type: " + String(header.type));
 
 		
 		if ( header.type == 'S' ) {
-			Serial.println("=== S message received ===");
+			//Serial.println("=== S message received ===");
 			// child is requesting a configuration from us
 			S_message message;
 			network.read(header, &message, sizeof(message));
-			Serial.println("Node: " + String(header.from_node));
-			Serial.println("Temp: " + String(message.temp_reading));
-			Serial.println("Voltage: " + String(message.voltage_reading));
-			Serial.println("Humidity: " + String(message.humidity_reading));
-			Serial.println("Lost: " + String(message.lost_packets));
-	
+			Serial.print("Node " + String(header.from_node) + ":\t");
+			Serial.print("Temp=" + String(message.temp_reading));
+			Serial.print(", Voltage=" + String(message.voltage_reading));
+			Serial.print(", Humidity=" + String(message.humidity_reading));
+			Serial.print(", Lost=" + String(message.lost_packets));
+			Serial.println("");
 		}else if ( header.type == 'k' ){
 			// child is requesting a configuration from us
 			Serial.println("=== k configuration ===");
@@ -138,6 +139,7 @@ void loop(void)
 }
 
 void printMenu(){
+	Serial.println("_______Menu_______");
 	Serial.println("config : Send Configs");
 	Serial.println("nodes  : Print Nodes");
 }
@@ -178,7 +180,13 @@ void serialEvent() {
     	inputString.replace("\n","");
     	//Serial.println("Command: " + String(inputString));
     	if(inputString == "config"){
-    		Serial.println("Send configs");
+    		Serial.println("Sending configs to " + String(nodeCount) + " nodes.");
+    		for(int i=0; i<nodeCount; i++){
+    			RF24NetworkHeader response_header(/*to node*/ nodes[i], /*type*/ 'K');
+				network.write(response_header, &system_config, sizeof(system_config));
+				Serial.println("Sending new config to node " + String(nodes[i]));
+    		}
+
     	}else if(inputString == "nodes"){
     		printNodes();
     	}else{
