@@ -14,6 +14,11 @@ const int ledGreen =  4;
 const int ledBlue =  3; 
 int ledState = LOW;  
 
+#define MAX_NODES 20
+
+String inputString = "";         // a string to hold incoming data
+boolean stringComplete = false;  // whether the string is complete
+
 // nRF24L01(+) radio attached using Getting Started board
 RF24 radio(9, 10);
 
@@ -43,6 +48,8 @@ struct K_message_t
 };
 
 K_message_t system_config = { 0, 0 };
+int nodes[MAX_NODES];
+int nodeCount = 0;
 
 void setup(void)
 {
@@ -62,7 +69,10 @@ void setup(void)
 	digitalWrite(ledRed, LOW);
 	digitalWrite(ledGreen, LOW);
 	digitalWrite(ledBlue, LOW);
-	
+
+
+	inputString.reserve(200);
+	printMenu();
 	//setup timers
 	//ledTimer.setInterval(500, ledDone);  
 }
@@ -76,6 +86,7 @@ void loop(void)
 	{
 		RF24NetworkHeader header;
 		network.peek(header);
+		addNode(header.from_node);
 		int color = ledGreen;
 
 		if(header.from_node == 1)
@@ -122,7 +133,61 @@ void loop(void)
 		}
 		
 	
-	
+	}
+
+}
+
+void printMenu(){
+	Serial.println("config : Send Configs");
+	Serial.println("nodes  : Print Nodes");
+}
+
+void printNodes(){
+	for(int i=0; i<nodeCount; i++){
+		if(nodes[i] > 0){
+			Serial.println("Node " + String(nodes[i]));
+		}
+	}
+	Serial.println("Total: " + String(nodeCount) + " nodes");
+}
+
+void addNode(int nodeId){
+	bool nodeExists = false;
+	for(int i=0; i<nodeCount; i++){
+		if(nodes[i] == nodeId)
+			nodeExists = true;
+	}
+
+	if(!nodeExists){
+		//add node to nodes array
+		nodes[nodeCount] = nodeId;
+		nodeCount++;
+		Serial.println("Node " + String(nodeId) + " added. Total: " + String(nodeCount));
 	}
 }
-// vim:ai:cin:sts=2 sw=2 ft=cpp
+
+void serialEvent() {
+  while (Serial.available()) {
+    // get the new byte:
+    char inChar = (char)Serial.read();
+    // add it to the inputString:
+    inputString += inChar;
+    // if the incoming character is a newline, set a flag
+    if (inChar == '\n') {
+    	//remove the termination character
+    	inputString.replace("\n","");
+    	//Serial.println("Command: " + String(inputString));
+    	if(inputString == "config"){
+    		Serial.println("Send configs");
+    	}else if(inputString == "nodes"){
+    		printNodes();
+    	}else{
+    		Serial.println("Unknown command");
+    	}
+    			
+    
+      stringComplete = true;
+      inputString = "";
+    }
+  }
+}
